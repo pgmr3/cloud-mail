@@ -18,7 +18,11 @@ jobs:
     
     strategy:
       matrix:
-        worker-dir: ['mail-worker']
+        project:
+          - name: 'mail-worker'
+            path: 'mail-worker'
+          - name: 'mail-vue'
+            path: 'mail-vue'
     
     steps:
       - name: Checkout repository
@@ -29,25 +33,30 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
-          cache-dependency-path: '${{ matrix.worker-dir }}/package-lock.json'
+          cache-dependency-path: '${{ matrix.project.path }}/package-lock.json'
 
-      - name: Install dependencies for ${{ matrix.worker-dir }}
+      - name: Install dependencies for ${{ matrix.project.name }}
         run: |
-          cd ${{ matrix.worker-dir }}
+          cd ${{ matrix.project.path }}
           npm install
 
-      - name: Deploy ${{ matrix.worker-dir }} to Cloudflare
+      - name: Build ${{ matrix.project.name }}
+        run: |
+          cd ${{ matrix.project.path }}
+          npm run build
+
+      - name: Deploy ${{ matrix.project.name }} to Cloudflare
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          cd ${{ matrix.worker-dir }}
+          cd ${{ matrix.project.path }}
           npm run deploy
 
       - name: Deployment Status ✅
         if: success()
-        run: echo "✅ ${{ matrix.worker-dir }} deployed successfully to Cloudflare!"
+        run: echo "✅ ${{ matrix.project.name }} deployed successfully to Cloudflare!"
 
       - name: Deployment Failed ❌
         if: failure()
-        run: echo "❌ Deployment of ${{ matrix.worker-dir }} failed. Check logs above."
+        run: echo "❌ Deployment of ${{ matrix.project.name }} failed. Check logs above."
