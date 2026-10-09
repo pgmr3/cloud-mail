@@ -1,0 +1,53 @@
+name: Deploy Cloudflare Workers
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: false
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        worker-dir: ['mail-worker']
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: '${{ matrix.worker-dir }}/package-lock.json'
+
+      - name: Install dependencies for ${{ matrix.worker-dir }}
+        run: |
+          cd ${{ matrix.worker-dir }}
+          npm install
+
+      - name: Deploy ${{ matrix.worker-dir }} to Cloudflare
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          cd ${{ matrix.worker-dir }}
+          npm run deploy
+
+      - name: Deployment Status ✅
+        if: success()
+        run: echo "✅ ${{ matrix.worker-dir }} deployed successfully to Cloudflare!"
+
+      - name: Deployment Failed ❌
+        if: failure()
+        run: echo "❌ Deployment of ${{ matrix.worker-dir }} failed. Check logs above."
