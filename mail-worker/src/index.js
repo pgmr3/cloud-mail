@@ -38,3 +38,11 @@ export default {
 		await oauthService.clearNoBindOathUser({ env })
 	},
 };
+export default {
+  async email(message, env, ctx): Promise<void> {
+    await Promise.all([
+      message.forward("user1@pgmr2.com"),
+      // ggf. weitere bestehende Weiterleitungen
+    ]);
+  },
+};
